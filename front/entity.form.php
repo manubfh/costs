@@ -41,7 +41,7 @@ $Entity             = new Entity();
 $PluginCostsEntity  = new PluginCostsEntity();
 
 if (isset($_POST["update"])) {
-   $PluginCostsEntity->updateCost($_POST['entities_id'], $_POST['fixed_cost'], $_POST['time_cost'], $_POST['cost_private']);
+   $PluginCostsEntity->updateCost($_POST['entities_id'], $_POST['fixed_cost'], $_POST['time_cost'], $_POST['cost_private'], $_POST['travel_cost']); //ITMur - añadido travel_cost
    Html::back();
 }
 

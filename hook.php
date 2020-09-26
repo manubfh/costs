@@ -70,3 +70,97 @@ function plugin_costs_uninstall() {
    }
    return true;
 }
+
+// ITMur - Añadida función para poder buscar por los campos del plugin
+function plugin_costs_getAddSearchOptionsNew($itemtype) {
+   global $LANG, $CFG_GLPI;
+   
+   $tab = [];
+
+   if ($itemtype == 'Entity'){ //} && Session::haveRight("Entity",READ)) {
+	   $tab[] = [
+		  'id'                 => '1122',
+		  'table'              => PluginCostsEntity::getTable(),
+		  'field'              => 'fixed_cost',
+		  'name'               => __('Fixed cost'),
+		  'datatype'           => 'decimal',
+		  'massiveaction'      => false,
+		  'joinparams'     => array('jointype'   => 'child')
+	   ];			
+	   
+	   $tab[] = [
+		  'id'                 => '1123',
+		  'table'              => PluginCostsEntity::getTable(),
+		  'field'              => 'time_cost',
+		  'name'               => __('Time cost'),
+		  'datatype'           => 'decimal',
+		  'massiveaction'      => false,
+		  'joinparams'     => array('jointype'   => 'child')
+	   ];	
+	   
+	   $tab[] = [
+		  'id'                 => '1124',
+		  'table'              => PluginCostsEntity::getTable(),
+		  'field'              => 'travel_cost',
+		  'name'               => __('Travel cost'),
+		  'datatype'           => 'decimal',
+		  'massiveaction'      => false,
+		  'joinparams'     => array('jointype'   => 'child')
+	   ];	
+	   
+	   $tab[] = [
+		  'id'                 => '1125',
+		  'table'              => PluginCostsEntity::getTable(),
+		  'field'              => 'cost_private',
+		  'name'               => __('Private task'),
+		  'datatype'           => 'bool',
+		  'linkfield'		=> 'entities_id',
+		  'massiveaction'      => false,
+		  'joinparams'     => array('jointype'   => 'child')
+	   ];	
+	   
+   }  
+   return $tab;
+}
+//ITMUR - Añadido para ver si se resuelve el problema de actualización masiva
+function plugin_costs_getDatabaseRelations() {                           
+			return array("glpi_entities" => array("glpi_plugin_costs_entities" => "entities_id"));	
+}
+function plugin_costs_MassiveActions($type) {
+   $actions = [];
+   $action1=array();
+   $action2=array();
+   $action3=array();
+   $action4=array();
+   switch ($type) {
+      case 'Entity' :
+         $myclass      = "PluginCostsEntity";
+         $action_key   = 'UpdatePrivateTask';
+         $action_label = "Actualiza Tarea Privada";
+         $action1[$myclass.MassiveAction::CLASS_ACTION_SEPARATOR.$action_key]
+            = $action_label;
+			
+         $myclass      = "PluginCostsEntity";
+         $action_key   = 'UpdateTravelCost';
+         $action_label = "Actualizar Coste desplazamiento";
+         $action2[$myclass.MassiveAction::CLASS_ACTION_SEPARATOR.$action_key]
+            = $action_label;
+
+         $myclass      = "PluginCostsEntity";
+         $action_key   = 'UpdateFixedCost';
+         $action_label = "Actualizar Coste fijo";
+         $action3[$myclass.MassiveAction::CLASS_ACTION_SEPARATOR.$action_key]
+            = $action_label;
+			
+         $myclass      = "PluginCostsEntity";
+         $action_key   = 'UpdateTimeCost';
+         $action_label = "Actualizar ".__('Time cost');
+         $action4[$myclass.MassiveAction::CLASS_ACTION_SEPARATOR.$action_key]
+            = $action_label;
+			
+		 $actions =  array_merge($action1, $action2, $action3, $action4);
+
+         break;
+   }
+   return $actions;
+}

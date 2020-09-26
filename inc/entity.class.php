@@ -40,10 +40,14 @@ if (!defined('GLPI_ROOT')) {
 
 class PluginCostsEntity extends CommonDBTM {
 
-   public static $rightname = 'entity';
+   //public static $rightname = 'entity';
 
    static function getTypeName($nb = 0) {
       return __('Costs', 'Costs');
+   }
+   
+   static function canUpdate() {
+      return true;
    }
 
    function getTabNameForItem(CommonGLPI $item, $withtemplate = 0) {
@@ -72,7 +76,7 @@ class PluginCostsEntity extends CommonDBTM {
          return true;
       } else {
          $DB->insert(self::getTable(), ['entities_id'=>$entities_id]);
-         $this->fields=['fixed_cost'=>0,'time_cost'=>0,'cost_private'=>0];
+         $this->fields=['fixed_cost'=>0,'time_cost'=>0,'cost_private'=>0,'travel_cost'=>0];
          return false;
       }
    }
@@ -100,7 +104,15 @@ class PluginCostsEntity extends CommonDBTM {
       $out.="<td>".__('Time cost')."</td><td>";
       $out.="<input size='5' step='".PLUGIN_COSTS_NUMBER_STEP."' type='number' name='time_cost' value='".$cost_config->fields['time_cost']."'>";
       $out.="</td></tr>\n";
-
+	  
+	  //ITMur
+	  $out.="<tr class='tab_bg_1'>";
+      //$out.="<td>".__('Travel cost')."</td><td>";
+	  $out.="<td>".__('Travel cost')."</td><td>";
+      $out.="<input size='5' step='".PLUGIN_COSTS_NUMBER_STEP."' type='number' name='travel_cost' value='".$cost_config->fields['travel_cost']."'>";
+      $out.="</td></tr>\n";
+	  //Fin ITMur
+	  
       $out.="<tr class='tab_bg_1'>";
       $out.="<td>".__('Private task')."</td><td>";
       $out .= Dropdown::showYesNo("cost_private", $cost_config->fields['cost_private'], -1, ['display' => false]);
@@ -121,9 +133,9 @@ class PluginCostsEntity extends CommonDBTM {
       return false;
    }
 
-   static function updateCost($entity_id, $fixed_cost, $time_cost, $cost_private) {
+   static function updateCost($entity_id, $fixed_cost, $time_cost, $cost_private, $travel_cost) {
       global $DB;
-      $DB->update(self::getTable(), ['fixed_cost'=>$fixed_cost,'time_cost'=>$time_cost,'cost_private'=>$cost_private], ['entities_id'=>$entity_id]);
+      $DB->update(self::getTable(), ['fixed_cost'=>$fixed_cost,'time_cost'=>$time_cost,'cost_private'=>$cost_private,'travel_cost'=>$travel_cost], ['entities_id'=>$entity_id]);
    }
 
    static function install(Migration $migration) {
@@ -139,7 +151,8 @@ class PluginCostsEntity extends CommonDBTM {
          			entities_id int(11) NOT NULL DEFAULT '0',
          			fixed_cost float NOT NULL default '0',
          			time_cost float NOT NULL default '0',
-                  cost_private tinyint(1) NOT NULL DEFAULT '0',
+					travel_cost float NOT NULL default '0',
+                    cost_private tinyint(1) NOT NULL DEFAULT '0',
          			PRIMARY KEY (id),
          			KEY entities_id (entities_id)
          		) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
@@ -151,5 +164,163 @@ class PluginCostsEntity extends CommonDBTM {
       $table=self::getTable();
       $migration->displayMessage("Uninstalling $table");
       $migration->dropTable($table);
+   }
+   
+   //ITMur
+   static function showMassiveActionsSubForm(MassiveAction $ma) {
+
+      switch ($ma->getAction()) {
+         case 'UpdatePrivateTask':
+            Dropdown::showYesNo("cost_private");
+			echo "<br>";
+            echo Html::submit(__('Update'), array('name' => 'massiveaction'))."</span>";
+            return true;
+         case 'UpdateTravelCost':
+			echo "<td>";
+			echo "<input size='5' type='number' name='travel_cost' value='0'>";
+			echo "<br>";
+			echo Html::submit(__('Update'), array('name' => 'massiveaction'))."</span>";
+            return true;
+         case 'UpdateFixedCost':
+			echo "<td>";
+			echo "<input size='5' type='number' name='fixed_cost' value='0'>";
+			echo "<br>";
+			echo Html::submit(__('Update'), array('name' => 'massiveaction'))."</span>";
+            return true;			
+         case 'UpdateTimeCost':
+			echo "<td>";
+			echo "<input size='5' type='number' name='time_cost' value='0'>";
+			echo "<br>";
+			echo Html::submit(__('Update'), array('name' => 'massiveaction'))."</span>";
+            return true;	
+			
+    }
+      return parent::showMassiveActionsSubForm($ma);
+   }
+   
+   //ITMur
+   static function processMassiveActionsForOneItemtype(MassiveAction $ma, CommonDBTM $item,
+                                                       array $ids) {
+      global $DB;
+
+      switch ($ma->getAction()) {
+         case 'UpdatePrivateTask' :
+            $input = $ma->getInput();
+            foreach ($ids as $id) {
+				$cost = new PluginCostsEntity();
+				$restrict = "`entities_id` = '".$id."'";
+				$cost_item = $cost->find($restrict);
+				$input2['id'] = current($cost_item)['id'];				
+				$input2['cost_private'] = $input['cost_private'];
+				if ($cost->update($input2)){
+					$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+				} else {
+					$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+					$ma->addMessage(__("Something went wrong"));
+				}
+            }
+            return;
+         case 'UpdateTravelCost' :
+            $input = $ma->getInput();
+            foreach ($ids as $id) {
+				$cost = new PluginCostsEntity();
+				$restrict = "`entities_id` = '".$id."'";
+				$cost_item = $cost->find($restrict);
+				//print_r($cost_item);
+				if (empty($cost_item)){ 
+					//no existe el registro por lo que hay que crearlo
+					$input2['entities_id']=$id;
+					$input2['travel_cost']=$input['travel_cost'];
+					if ($cost->add($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+						$texto_mensaje="Añadido coste para entidad ".$id;
+						$ma->addMessage($texto_mensaje);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}					
+
+				} else {
+					//existe el registro --> se puede actualizar
+					$input2['id'] = current($cost_item)['id'];				
+					$input2['travel_cost'] = $input['travel_cost'];
+					if ($cost->update($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}
+				}
+            }
+            return;
+         case 'UpdateFixedCost' :
+            $input = $ma->getInput();
+            foreach ($ids as $id) {
+				$cost = new PluginCostsEntity();
+				$restrict = "`entities_id` = '".$id."'";
+				$cost_item = $cost->find($restrict);
+				//print_r($cost_item);
+				if (empty($cost_item)){ 
+					//no existe el registro por lo que hay que crearlo
+					$input2['entities_id']=$id;
+					$input2['fixed_cost']=$input['fixed_cost'];
+					if ($cost->add($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+						$texto_mensaje="Añadido coste para entidad ".$id;
+						$ma->addMessage($texto_mensaje);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}					
+
+				} else {
+					//existe el registro --> se puede actualizar
+					$input2['id'] = current($cost_item)['id'];				
+					$input2['fixed_cost'] = $input['fixed_cost'];
+					if ($cost->update($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}
+				}
+            }
+            return;		
+         case 'UpdateTimeCost' :
+            $input = $ma->getInput();
+            foreach ($ids as $id) {
+				$cost = new PluginCostsEntity();
+				$restrict = "`entities_id` = '".$id."'";
+				$cost_item = $cost->find($restrict);
+				//print_r($cost_item);
+				if (empty($cost_item)){ 
+					//no existe el registro por lo que hay que crearlo
+					$input2['entities_id']=$id;
+					$input2['time_cost']=$input['time_cost'];
+					if ($cost->add($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+						$texto_mensaje="Añadido coste para entidad ".$id;
+						$ma->addMessage($texto_mensaje);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}					
+
+				} else {
+					//existe el registro --> se puede actualizar
+					$input2['id'] = current($cost_item)['id'];				
+					$input2['time_cost'] = $input['time_cost'];
+					if ($cost->update($input2)){
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
+					} else {
+						$ma->itemDone($item->getType(), $id, MassiveAction::ACTION_KO);
+						$ma->addMessage(__("Something went wrong"));
+					}
+				}
+            }
+            return;				
+
+      }
+      parent::processMassiveActionsForOneItemtype($ma, $item, $ids);
    }
 }

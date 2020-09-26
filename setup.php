@@ -32,7 +32,11 @@
  @link      https://tic.gal
  @since     2018
  ---------------------------------------------------------------------- */
+<<<<<<< HEAD
 define ('PLUGIN_COSTS_VERSION', '1.3.0');
+=======
+define ('PLUGIN_COSTS_VERSION', '1.0.0 + 1.0');
+>>>>>>> 1.0.0-itmur
 // Minimal GLPI version, inclusive
 define("PLUGIN_COSTS_MIN_GLPI", "9.5");
 // Maximum GLPI version, exclusive
@@ -46,8 +50,13 @@ if (!defined('PLUGIN_COSTS_NUMBER_STEP')) {
 function plugin_version_costs() {
    return ['name'       => 'Costs',
       'version'        => PLUGIN_COSTS_VERSION,
+<<<<<<< HEAD
       'author'         => '<a href="https://tic.gal">TICgal</a>',
       'homepage'       => 'https://tic.gal/en/project/costs-control-plugin-glpi/',
+=======
+      'author'         => '<a href="https://tic.gal">TICgal</a> & <a href="http://itmur.es">ITMur</a>',
+      'homepage'       => 'http://ITMur.es',
+>>>>>>> 1.0.0-itmur
       'license'        => 'GPLv3+',
       'requirements'   => [
          'glpi'   => [
@@ -71,4 +80,11 @@ function plugin_init_costs() {
    $PLUGIN_HOOKS['csrf_compliant']['costs'] = true;
    $PLUGIN_HOOKS['pre_item_update']['costs'] = ['Ticket'  => ['PluginCostsTicket','generateCosts']];
 
+<<<<<<< HEAD
 }
+=======
+   //ITMur - Acción masiva para actualizar coste
+   $PLUGIN_HOOKS['use_massive_action']['costs'] = 1;
+
+}
+>>>>>>> 1.0.0-itmur
